@@ -1,0 +1,65 @@
+---
+title: "Twitter API"
+author: "Kelvin Gathigia"
+date: "April 8, 2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+set.seed(999)
+#RFM analysis\
+library(lubridate)
+library(dplyr)
+donor_id= sample(1:20, 100, replace=TRUE)
+
+gift_date= sample(seq(from=ymd("2018-01-1"),to=ymd("2020-04-1"), by="days"), 100 )
+gift_date= as.numeric(format(gift_date, "%Y"))
+
+x <- 100:10000
+div_10 <- function(x) x[x %% 10 == 0]
+
+
+gift_amount=sample(div_10(x),100, replace = FALSE)
+
+donor_contr=data.frame("donor_id"=donor_id,"gift_date"=gift_date,"gift_amount"=gift_amount)
+
+head(donor_contr)
+
+summary(donor_contr)
+
+rfm_donor_data<- donor_contr %>% 
+    mutate(DaysSinceGift = as.numeric(Sys.Date() - gift_date, 
+                                    units = "days"))
+rfm_donor_data_sum<- rfm_donor_data %>%
+    group_by(donor_id)%>%
+    summarise(Recency= min(2020-gift_date),
+              Frequency=n(),
+              Monetary=sum(gift_amount))
+glimpse(rfm_donor_data_sum)
+
+summary(select(rfm_donor_data_sum, -donor_id))
+
+#Creating_bins
+rfm_donor_data_sum <- rfm_donor_data_sum %>%
+  mutate_at(.funs = funs(rank = ntile(., n = 3)), 
+            .vars = vars(Frequency, Monetary)) %>%
+  mutate(Recency_rank = 3 - Recency) %>%
+  mutate(RFM_score = as.integer(paste0(Recency_rank, 
+                                       Frequency_rank, 
+                                       Monetary_rank)))
+head(rfm_donor_data_sum)
+
+rfm_donor_data=rfm_donor_data_sum %>% 
+    group_by(Recency_rank) %>% 
+    arrange(desc(RFM_score))
+
+library(xlsx)
+write.csv(rfm_donor_data, file="finaldonor.csv")
+
+
+```
+
